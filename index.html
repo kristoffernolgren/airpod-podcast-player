@@ -246,13 +246,15 @@
 
             for (const proxy of proxies) {
                 try {
+                    const startTime = Date.now();
                     log(`Trying ${proxy.name}...`);
                     response = await fetchWithTimeout(proxy.url, 10000);
+                    const elapsed = Date.now() - startTime;
                     if (response.ok) {
-                        log(`+ ${proxy.name} ok`);
+                        log(`+ ${proxy.name} ok (${elapsed}ms)`);
                         break;
                     } else {
-                        log(`- ${proxy.name} failed: ${response.status}`);
+                        log(`- ${proxy.name} failed: ${response.status} (${elapsed}ms)`);
                     }
                 } catch (error) {
                     if (error.name === 'AbortError') {
@@ -269,7 +271,10 @@
                 throw lastError || new Error('All proxy attempts failed');
             }
 
-            return response.text();
+            log('Reading response body...');
+            const text = await response.text();
+            log(`Response body: ${text.length} chars`);
+            return text;
         }
 
         // Parse episodes from XML document
@@ -316,9 +321,11 @@
                     log(`Page ${pageCount}...`);
 
                     const xmlText = await fetchRSSPage(currentUrl);
+                    log('Parsing XML...');
                     const parser = new DOMParser();
                     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 
+                    log('Extracting episodes...');
                     const pageEpisodes = parseEpisodesFromXml(xmlDoc);
                     if (pageEpisodes.length === 0 && pageCount === 1) {
                         throw new Error('No episodes found in RSS feed');
@@ -328,7 +335,9 @@
                     log(`+ ${pageEpisodes.length} episodes`);
 
                     // Check for next page
+                    log('Checking for next page...');
                     currentUrl = getNextPageUrl(xmlDoc);
+                    log(`Next page: ${currentUrl ? currentUrl : 'none'}`);
                 }
 
                 log(`Total: ${allEpisodes.length} episodes`);
