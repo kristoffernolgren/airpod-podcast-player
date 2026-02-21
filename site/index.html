@@ -205,8 +205,14 @@
 
         // Audio element for actual podcast playback
         let podcastAudio = null;
-        let latestEpisode = null;
+        let allEpisodes = [];
+        let currentEpisode = null;
         let isPlaying = false;
+        let stopTimer = null;
+
+        // Time control constants (in seconds)
+        const START_OFFSET_SECONDS = 300;  // Start 5 minutes into episode
+        const PLAY_DURATION_SECONDS = 900; // Play for 15 minutes
 
         // RSS Feed URL
         const RSS_FEED_URL = 'https://audioboom.com/channels/2399216.rss';
@@ -248,83 +254,123 @@
             }
         }
 
-        // Fetch RSS feed using CORS proxy
-        async function fetchRSSFeed() {
-            log('Fetching latest podcast episode...');
+        // Fetch a single RSS page using CORS proxy
+        async function fetchRSSPage(feedUrl) {
+            const proxies = [
+                { name: 'AllOrigins', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}` },
+                { name: 'CORSProxy', url: `https://corsproxy.io/?${encodeURIComponent(feedUrl)}` },
+                { name: 'Direct', url: feedUrl }
+            ];
 
-            try {
-                // Try multiple CORS proxy services as fallbacks
-                const proxies = [
-                    { name: 'AllOrigins', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(RSS_FEED_URL)}` },
-                    { name: 'CORSProxy', url: `https://corsproxy.io/?${encodeURIComponent(RSS_FEED_URL)}` },
-                    { name: 'Direct', url: RSS_FEED_URL }
-                ];
+            let response;
+            let lastError;
 
-                let response;
-                let lastError;
-
-                for (const proxy of proxies) {
-                    try {
-                        log(`Trying ${proxy.name}...`);
-                        response = await fetchWithTimeout(proxy.url, 10000);
-                        if (response.ok) {
-                            log(`✓ Success with ${proxy.name}`);
-                            break;
-                        } else {
-                            log(`✗ ${proxy.name} failed with status ${response.status}`);
-                        }
-                    } catch (error) {
-                        if (error.name === 'AbortError') {
-                            log(`✗ ${proxy.name} timed out after 10s`);
-                        } else {
-                            log(`✗ ${proxy.name} error: ${error.message}`);
-                        }
-                        lastError = error;
-                        continue;
+            for (const proxy of proxies) {
+                try {
+                    log(`Trying ${proxy.name}...`);
+                    response = await fetchWithTimeout(proxy.url, 10000);
+                    if (response.ok) {
+                        log(`✓ Success with ${proxy.name}`);
+                        break;
+                    } else {
+                        log(`✗ ${proxy.name} failed with status ${response.status}`);
                     }
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        log(`✗ ${proxy.name} timed out after 10s`);
+                    } else {
+                        log(`✗ ${proxy.name} error: ${error.message}`);
+                    }
+                    lastError = error;
+                    continue;
                 }
+            }
 
-                if (!response || !response.ok) {
-                    throw lastError || new Error('All proxy attempts failed');
-                }
+            if (!response || !response.ok) {
+                throw lastError || new Error('All proxy attempts failed');
+            }
 
-                const xmlText = await response.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            return response.text();
+        }
 
-                // Get the first (most recent) item
-                const items = xmlDoc.querySelectorAll('item');
-                if (items.length === 0) {
-                    throw new Error('No episodes found in RSS feed');
-                }
+        // Parse episodes from XML document
+        function parseEpisodesFromXml(xmlDoc) {
+            const episodes = [];
+            const items = xmlDoc.querySelectorAll('item');
 
-                const firstItem = items[0];
-                const title = firstItem.querySelector('title')?.textContent || 'Unknown Title';
-                const enclosure = firstItem.querySelector('enclosure');
+            items.forEach(item => {
+                const title = item.querySelector('title')?.textContent || 'Unknown Title';
+                const enclosure = item.querySelector('enclosure');
                 const audioUrl = enclosure?.getAttribute('url') || null;
 
-                if (!audioUrl) {
-                    throw new Error('No audio URL found in latest episode');
+                if (audioUrl) {
+                    episodes.push({ title, audioUrl });
+                }
+            });
+
+            return episodes;
+        }
+
+        // Get next page URL from RSS feed (Atom pagination)
+        function getNextPageUrl(xmlDoc) {
+            // Look for <atom:link rel="next" href="...">
+            const atomLinks = xmlDoc.querySelectorAll('link');
+            for (const link of atomLinks) {
+                if (link.getAttribute('rel') === 'next') {
+                    return link.getAttribute('href');
+                }
+            }
+            return null;
+        }
+
+        // Fetch RSS feed using CORS proxy (all pages)
+        async function fetchRSSFeed() {
+            log('Fetching all podcast episodes...');
+            allEpisodes = [];
+
+            try {
+                let currentUrl = RSS_FEED_URL;
+                let pageCount = 0;
+
+                while (currentUrl) {
+                    pageCount++;
+                    log(`Fetching page ${pageCount}...`);
+
+                    const xmlText = await fetchRSSPage(currentUrl);
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                    const pageEpisodes = parseEpisodesFromXml(xmlDoc);
+                    if (pageEpisodes.length === 0 && pageCount === 1) {
+                        throw new Error('No episodes found in RSS feed');
+                    }
+
+                    allEpisodes.push(...pageEpisodes);
+                    log(`Found ${pageEpisodes.length} episodes on page ${pageCount}`);
+
+                    // Check for next page
+                    currentUrl = getNextPageUrl(xmlDoc);
                 }
 
-                latestEpisode = {
-                    title: title,
-                    audioUrl: audioUrl
-                };
+                log(`Total episodes loaded: ${allEpisodes.length}`);
 
-                log(`Latest episode: ${title}`);
-
-                // Display episode info
+                // Display episode count
                 document.getElementById('episode-info').style.display = 'block';
-                document.getElementById('episode-title').textContent = title;
+                document.getElementById('episode-title').textContent = `${allEpisodes.length} episodes available`;
 
-                return latestEpisode;
+                return allEpisodes;
 
             } catch (error) {
                 log(`Error fetching RSS feed: ${error.message}`);
                 updateStatus('Error loading podcast feed', false);
                 throw error;
             }
+        }
+
+        // Get a random episode from all loaded episodes
+        function getRandomEpisode() {
+            if (allEpisodes.length === 0) return null;
+            return allEpisodes[Math.floor(Math.random() * allEpisodes.length)];
         }
 
         // Setup Media Session API
