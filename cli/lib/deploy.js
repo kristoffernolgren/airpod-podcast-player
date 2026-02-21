@@ -1,6 +1,8 @@
 const ghpages = require('gh-pages');
 const chalk = require('chalk');
 const ora = require('ora');
+const fs = require('fs');
+const path = require('path');
 const { execSync } = require('child_process');
 const { loadConfig, updateConfig, configExists } = require('./config');
 const { verifyAuth } = require('./auth');
@@ -25,9 +27,11 @@ async function deploySite() {
   const { siteDir, branch, githubUsername, repoName } = config;
 
   // Verify site directory exists
-  const fs = require('fs');
-  const path = require('path');
-  const sitePath = path.join(process.cwd(), siteDir);
+  const cwd = process.cwd();
+  console.log(`Debug - CWD: ${cwd}`);
+  console.log(`Debug - siteDir: ${siteDir}`);
+  const sitePath = path.join(cwd, siteDir);
+  console.log(`Debug - sitePath: ${sitePath}`);
 
   if (!fs.existsSync(sitePath)) {
     console.log(chalk.red(`\n✗ Site directory not found: ${siteDir}`));
@@ -48,13 +52,17 @@ async function deploySite() {
   const spinner = ora('Publishing to GitHub Pages').start();
 
   return new Promise((resolve, reject) => {
+    const options = {
+      branch: branch,
+      message: `Deploy: ${new Date().toISOString()}`,
+      dotfiles: false,
+      repo: `https://github.com/${githubUsername}/${repoName}.git`
+    };
+    console.log(`Debug - Options:`, options);
+
     ghpages.publish(
-      siteDir,
-      {
-        branch: branch,
-        message: `Deploy: ${new Date().toISOString()}`,
-        dotfiles: false
-      },
+      sitePath,
+      options,
       (err) => {
         if (err) {
           spinner.fail('Deployment failed');

@@ -4,7 +4,7 @@ A lightweight, iOS-optimized podcast player designed for AirPods users. Play you
 
 ## Live Demo
 
-🎧 [Try it now](https://[username].github.io/airpod-podcast-player)
+🎧 [Try it now](https://kristoffernolgren.github.io/airpod-podcast-player)
 
 ## Features
 
@@ -18,13 +18,13 @@ A lightweight, iOS-optimized podcast player designed for AirPods users. Play you
 
 ### For Users
 
-Visit the [live demo](https://[username].github.io/airpod-podcast-player) in Safari on your iOS device.
+Visit the [live demo](https://kristoffernolgren.github.io/airpod-podcast-player) in Safari on your iOS device.
 
 ### For Developers
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/[username]/airpod-podcast-player.git
+   git clone https://github.com/kristoffernolgren/airpod-podcast-player.git
    cd airpod-podcast-player
    ```
 
