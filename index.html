@@ -155,6 +155,8 @@
         let currentEpisode = null;
         let isPlaying = false;
         let stopTimer = null;
+        let countdownInterval = null;
+        let playStartTime = null;
 
         // Time control constants (in seconds)
         const START_OFFSET_SECONDS = 300;  // Start 5 minutes into episode
@@ -183,6 +185,37 @@
             } else {
                 statusDiv.classList.remove('active');
             }
+        }
+
+        // Format seconds to mm:ss
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Start countdown timer display
+        function startCountdown() {
+            playStartTime = Date.now();
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                const elapsed = (Date.now() - playStartTime) / 1000;
+                const remaining = Math.max(0, PLAY_DURATION_SECONDS - elapsed);
+
+                if (remaining > 0 && currentEpisode) {
+                    updateStatus(`Playing: ${currentEpisode.title} [${formatTime(remaining)}]`, true);
+                }
+            }, 1000);
+        }
+
+        // Stop countdown timer
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            playStartTime = null;
         }
 
         // Fetch with timeout
@@ -407,6 +440,7 @@
                 clearTimeout(stopTimer);
                 stopTimer = null;
             }
+            stopCountdown();
 
             // Pick a random episode
             currentEpisode = getRandomEpisode();
@@ -436,7 +470,7 @@
             podcastAudio.addEventListener('playing', () => {
                 log(`Playing from ${Math.round(podcastAudio.currentTime / 60)}min`);
                 isPlaying = true;
-                updateStatus(`Playing: ${currentEpisode.title}`, true);
+                startCountdown();
 
                 // Update media session metadata
                 if ('mediaSession' in navigator) {
@@ -451,6 +485,7 @@
                 if (stopTimer) clearTimeout(stopTimer);
                 stopTimer = setTimeout(() => {
                     log(`Auto-stop (${PLAY_DURATION_SECONDS / 60}min limit)`);
+                    stopCountdown();
                     if (podcastAudio) {
                         podcastAudio.pause();
                         podcastAudio.src = '';
@@ -466,12 +501,14 @@
                 if (podcastAudio && podcastAudio.src) {
                     log('Paused');
                     isPlaying = false;
+                    stopCountdown();
                 }
             });
 
             podcastAudio.addEventListener('ended', () => {
                 log('Ended');
                 isPlaying = false;
+                stopCountdown();
                 if (stopTimer) {
                     clearTimeout(stopTimer);
                     stopTimer = null;
@@ -544,8 +581,11 @@
             }
         }
 
-        // Start on load
-        init();
+        // Start when user taps the overlay (required for autoplay policy)
+        document.getElementById('startOverlay').addEventListener('click', function() {
+            this.classList.add('hidden');
+            init();
+        });
     </script>
 </body>
 </html>
