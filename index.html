@@ -4,145 +4,91 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AirPod Podcast Player</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0a0a0a;
             min-height: 100vh;
-            color: white;
+            color: #33ff33;
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            text-align: center;
-            opacity: 0.8;
-            margin-bottom: 30px;
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        #start-session-btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-
-        #start-session-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
-        }
-
-        #start-session-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #33ff33;
+            padding: 20px;
         }
 
         .status {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .status.active {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .episode-info {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        .episode-info h3 {
-            margin-top: 0;
-        }
-
-        .log {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            margin-top: 20px;
-        }
-
-        .log-entry {
-            margin-bottom: 5px;
-            opacity: 0.9;
-        }
-
-        .instructions {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            border: 1px solid #33ff33;
+            padding: 10px;
+            margin-bottom: 15px;
             font-size: 14px;
         }
 
-        .instructions ol {
-            margin: 10px 0;
-            padding-left: 20px;
+        .status.active {
+            background: rgba(51, 255, 51, 0.1);
         }
 
-        .instructions li {
-            margin-bottom: 8px;
+        .log {
+            background: #111;
+            border: 1px solid #222;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .start-overlay .prompt {
+            text-align: center;
+        }
+
+        .start-overlay .prompt-text {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .start-overlay .prompt-hint {
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        .start-overlay.hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
+    <div id="startOverlay" class="start-overlay">
+        <div class="prompt">
+            <div class="prompt-text">[ Tap to start ]</div>
+            <div class="prompt-hint">Required for audio playback</div>
+        </div>
+    </div>
     <div class="container">
-        <h1>🎧 AirPod Podcast Player</h1>
-        <p class="subtitle">Control with your AirPods while iPhone is locked</p>
-
-        <div class="instructions">
-            <strong>How to use:</strong>
-            <ol>
-                <li>Click "Enable AirPod Control" below</li>
-                <li>Lock your iPhone</li>
-                <li>Click your AirPod play/pause button to start the latest episode</li>
-            </ol>
-        </div>
-
-        <div id="status" class="status">
-            Not active - Click button below to enable
-        </div>
-
-        <button id="start-session-btn">Enable AirPod Control</button>
-
-        <div id="episode-info" class="episode-info" style="display: none;">
-            <h3>Latest Episode:</h3>
-            <div id="episode-title">Loading...</div>
-        </div>
-
+        <div id="status" class="status">Loading episodes...</div>
         <div class="log" id="log"></div>
     </div>
 
@@ -270,16 +216,16 @@
                     log(`Trying ${proxy.name}...`);
                     response = await fetchWithTimeout(proxy.url, 10000);
                     if (response.ok) {
-                        log(`✓ Success with ${proxy.name}`);
+                        log(`+ ${proxy.name} ok`);
                         break;
                     } else {
-                        log(`✗ ${proxy.name} failed with status ${response.status}`);
+                        log(`- ${proxy.name} failed: ${response.status}`);
                     }
                 } catch (error) {
                     if (error.name === 'AbortError') {
-                        log(`✗ ${proxy.name} timed out after 10s`);
+                        log(`- ${proxy.name} timeout`);
                     } else {
-                        log(`✗ ${proxy.name} error: ${error.message}`);
+                        log(`- ${proxy.name}: ${error.message}`);
                     }
                     lastError = error;
                     continue;
@@ -325,7 +271,7 @@
 
         // Fetch RSS feed using CORS proxy (all pages)
         async function fetchRSSFeed() {
-            log('Fetching all podcast episodes...');
+            log('Fetching podcast feed...');
             allEpisodes = [];
 
             try {
@@ -334,7 +280,7 @@
 
                 while (currentUrl) {
                     pageCount++;
-                    log(`Fetching page ${pageCount}...`);
+                    log(`Page ${pageCount}...`);
 
                     const xmlText = await fetchRSSPage(currentUrl);
                     const parser = new DOMParser();
@@ -346,23 +292,18 @@
                     }
 
                     allEpisodes.push(...pageEpisodes);
-                    log(`Found ${pageEpisodes.length} episodes on page ${pageCount}`);
+                    log(`+ ${pageEpisodes.length} episodes`);
 
                     // Check for next page
                     currentUrl = getNextPageUrl(xmlDoc);
                 }
 
-                log(`Total episodes loaded: ${allEpisodes.length}`);
-
-                // Display episode count
-                document.getElementById('episode-info').style.display = 'block';
-                document.getElementById('episode-title').textContent = `${allEpisodes.length} episodes available`;
-
+                log(`Total: ${allEpisodes.length} episodes`);
                 return allEpisodes;
 
             } catch (error) {
-                log(`Error fetching RSS feed: ${error.message}`);
-                updateStatus('Error loading podcast feed', false);
+                log(`Error: ${error.message}`);
+                updateStatus('Error loading feed', false);
                 throw error;
             }
         }
@@ -376,7 +317,7 @@
         // Setup Media Session API
         function setupMediaSession() {
             if ('mediaSession' in navigator) {
-                log('Setting up Media Session API...');
+                log('Setting up Media Session...');
 
                 // Set metadata
                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -389,7 +330,7 @@
 
                 // Intercept PAUSE command (AirPod single click)
                 navigator.mediaSession.setActionHandler('pause', () => {
-                    log('AirPod clicked! Starting latest podcast episode...');
+                    log('AirPod clicked!');
                     handleAirPodClick();
 
                     // Keep background audio playing
@@ -399,27 +340,27 @@
 
                 // Intercept PLAY command
                 navigator.mediaSession.setActionHandler('play', () => {
-                    log('Play command received');
+                    log('Play command');
                     backgroundAudio.play();
                     navigator.mediaSession.playbackState = "playing";
                 });
 
                 // Optional: Handle next/previous track (double/triple click)
                 navigator.mediaSession.setActionHandler('nexttrack', () => {
-                    log('Next track (double click)');
+                    log('Skip +30s');
                     if (podcastAudio && isPlaying) {
-                        podcastAudio.currentTime += 30; // Skip forward 30s
+                        podcastAudio.currentTime += 30;
                     }
                 });
 
                 navigator.mediaSession.setActionHandler('previoustrack', () => {
-                    log('Previous track (triple click)');
+                    log('Skip -30s');
                     if (podcastAudio && isPlaying) {
-                        podcastAudio.currentTime -= 30; // Skip back 30s
+                        podcastAudio.currentTime -= 30;
                     }
                 });
 
-                log('Media Session API configured');
+                log('Media Session configured');
             } else {
                 log('Media Session API not supported');
             }
@@ -429,156 +370,182 @@
         function setupAudioSession() {
             if ('audioSession' in navigator) {
                 navigator.audioSession.type = 'playback';
-                log('Audio session type set to playback');
+                log('Audio session: playback');
             }
         }
 
-        // Handle AirPod click - toggle podcast playback
+        // Handle AirPod click - pause if playing, otherwise start new random episode
         function handleAirPodClick() {
             // Store event in localStorage for persistence
             const clickCount = parseInt(localStorage.getItem('airpod_clicks') || '0', 10) + 1;
             localStorage.setItem('airpod_clicks', clickCount.toString());
             localStorage.setItem('last_click_timestamp', Date.now().toString());
 
-            if (!latestEpisode) {
-                log('No episode loaded yet');
+            if (allEpisodes.length === 0) {
+                log('No episodes loaded');
                 return;
             }
 
-            if (!podcastAudio) {
-                // First click - create and start playing podcast
-                log(`Creating podcast audio player for: ${latestEpisode.audioUrl}`);
-                podcastAudio = new Audio(latestEpisode.audioUrl);
-
-                podcastAudio.addEventListener('loadstart', () => {
-                    log('Podcast: Loading started...');
-                });
-
-                podcastAudio.addEventListener('loadedmetadata', () => {
-                    log(`Podcast: Metadata loaded (duration: ${Math.round(podcastAudio.duration / 60)}min)`);
-                });
-
-                podcastAudio.addEventListener('canplay', () => {
-                    log('Podcast: Ready to play');
-                });
-
-                podcastAudio.addEventListener('playing', () => {
-                    log('Podcast is now playing');
-                    isPlaying = true;
-                    updateStatus(`Playing: ${latestEpisode.title}`, true);
-
-                    // Update media session metadata
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: latestEpisode.title,
-                            artist: "Podcast Episode",
-                            album: "AirPod Controller"
-                        });
-                    }
-                });
-
-                podcastAudio.addEventListener('pause', () => {
-                    log('Podcast paused');
-                    isPlaying = false;
-                    updateStatus('Paused - Click AirPod to resume', false);
-                });
-
-                podcastAudio.addEventListener('ended', () => {
-                    log('Podcast ended');
-                    isPlaying = false;
-                    updateStatus('Episode finished', false);
-                });
-
-                podcastAudio.addEventListener('error', (e) => {
-                    const errorDetails = e.target.error;
-                    let errorMsg = 'Unknown error';
-                    if (errorDetails) {
-                        switch(errorDetails.code) {
-                            case 1: errorMsg = 'MEDIA_ERR_ABORTED'; break;
-                            case 2: errorMsg = 'MEDIA_ERR_NETWORK'; break;
-                            case 3: errorMsg = 'MEDIA_ERR_DECODE'; break;
-                            case 4: errorMsg = 'MEDIA_ERR_SRC_NOT_SUPPORTED'; break;
-                        }
-                    }
-                    log(`Podcast playback error: ${errorMsg}`);
-                    updateStatus(`Playback error: ${errorMsg}`, false);
-                });
-
-                podcastAudio.play().catch(err => {
-                    log(`Error starting podcast: ${err.message}`);
-                    updateStatus(`Error: ${err.message}`, false);
-                });
-
-            } else {
-                // Toggle play/pause
-                if (podcastAudio.paused) {
-                    log('Resuming podcast...');
-                    podcastAudio.play();
-                } else {
-                    log('Pausing podcast...');
-                    podcastAudio.pause();
+            // If currently playing, just pause
+            if (podcastAudio && !podcastAudio.paused) {
+                log('Pausing...');
+                podcastAudio.pause();
+                if (stopTimer) {
+                    clearTimeout(stopTimer);
+                    stopTimer = null;
                 }
+                updateStatus('Paused - click for new episode', false);
+                return;
             }
+
+            // Stop any existing paused audio
+            if (podcastAudio) {
+                podcastAudio.src = '';
+                podcastAudio = null;
+            }
+            if (stopTimer) {
+                clearTimeout(stopTimer);
+                stopTimer = null;
+            }
+
+            // Pick a random episode
+            currentEpisode = getRandomEpisode();
+            log(`Playing: ${currentEpisode.title}`);
+
+            podcastAudio = new Audio(currentEpisode.audioUrl);
+
+            podcastAudio.addEventListener('loadstart', () => {
+                log('Loading...');
+            });
+
+            podcastAudio.addEventListener('loadedmetadata', () => {
+                const duration = Math.round(podcastAudio.duration / 60);
+                log(`Duration: ${duration}min`);
+
+                // Seek to 5 minutes in (or start, if episode is shorter)
+                if (podcastAudio.duration > START_OFFSET_SECONDS) {
+                    podcastAudio.currentTime = START_OFFSET_SECONDS;
+                    log(`Seek: ${START_OFFSET_SECONDS / 60}min`);
+                }
+            });
+
+            podcastAudio.addEventListener('canplay', () => {
+                log('Ready');
+            });
+
+            podcastAudio.addEventListener('playing', () => {
+                log(`Playing from ${Math.round(podcastAudio.currentTime / 60)}min`);
+                isPlaying = true;
+                updateStatus(`Playing: ${currentEpisode.title}`, true);
+
+                // Update media session metadata
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: currentEpisode.title,
+                        artist: "Random Episode",
+                        album: "AirPod Controller"
+                    });
+                }
+
+                // Set 15-minute auto-stop timer
+                if (stopTimer) clearTimeout(stopTimer);
+                stopTimer = setTimeout(() => {
+                    log(`Auto-stop (${PLAY_DURATION_SECONDS / 60}min limit)`);
+                    if (podcastAudio) {
+                        podcastAudio.pause();
+                        podcastAudio.src = '';
+                        podcastAudio = null;
+                    }
+                    isPlaying = false;
+                    updateStatus('Stopped - click for new episode', false);
+                }, PLAY_DURATION_SECONDS * 1000);
+            });
+
+            podcastAudio.addEventListener('pause', () => {
+                // Only log if not auto-stopped
+                if (podcastAudio && podcastAudio.src) {
+                    log('Paused');
+                    isPlaying = false;
+                }
+            });
+
+            podcastAudio.addEventListener('ended', () => {
+                log('Ended');
+                isPlaying = false;
+                if (stopTimer) {
+                    clearTimeout(stopTimer);
+                    stopTimer = null;
+                }
+                updateStatus('Finished - click for new episode', false);
+            });
+
+            podcastAudio.addEventListener('error', (e) => {
+                const errorDetails = e.target.error;
+                let errorMsg = 'Unknown error';
+                if (errorDetails) {
+                    switch(errorDetails.code) {
+                        case 1: errorMsg = 'MEDIA_ERR_ABORTED'; break;
+                        case 2: errorMsg = 'MEDIA_ERR_NETWORK'; break;
+                        case 3: errorMsg = 'MEDIA_ERR_DECODE'; break;
+                        case 4: errorMsg = 'MEDIA_ERR_SRC_NOT_SUPPORTED'; break;
+                    }
+                }
+                log(`Error: ${errorMsg}`);
+                updateStatus(`Error: ${errorMsg}`, false);
+            });
+
+            podcastAudio.play().catch(err => {
+                log(`Error: ${err.message}`);
+                updateStatus(`Error: ${err.message}`, false);
+            });
         }
 
-        // Start session button handler
-        document.getElementById('start-session-btn').addEventListener('click', async () => {
-            const button = document.getElementById('start-session-btn');
-            button.disabled = true;
-            button.textContent = 'Initializing...';
+        // Auto-initialize on page load
+        async function init() {
+            log('Initializing...');
 
             try {
                 // Step 1: Start silent audio loop
-                log('Step 1: Starting background audio...');
-                updateStatus('Starting background audio...', false);
+                log('Starting background audio...');
+                updateStatus('Starting...', false);
 
                 try {
                     await backgroundAudio.play();
-                    log('✓ Background audio loop started successfully');
+                    log('+ Background audio ok');
                 } catch (audioError) {
-                    log(`Background audio failed: ${audioError.message}`);
-                    throw new Error(`Background audio failed: ${audioError.message}`);
+                    log(`Background audio: ${audioError.message}`);
+                    throw new Error(`Background audio: ${audioError.message}`);
                 }
 
                 // Step 2: Setup audio session
-                log('Step 2: Configuring audio session...');
-                updateStatus('Configuring audio session...', false);
+                log('Configuring audio session...');
                 setupAudioSession();
-                log('✓ Audio session configured');
 
-                // Step 3: Fetch latest episode
-                log('Step 3: Fetching latest podcast episode...');
-                updateStatus('Loading latest episode...', false);
+                // Step 3: Fetch all episodes
+                updateStatus('Loading episodes...', false);
 
                 try {
                     await fetchRSSFeed();
-                    log('✓ Episode loaded successfully');
+                    log(`+ ${allEpisodes.length} episodes loaded`);
                 } catch (rssError) {
-                    log(`RSS fetch failed: ${rssError.message}`);
-                    throw new Error(`Failed to load podcast feed: ${rssError.message}`);
+                    throw new Error(`Feed: ${rssError.message}`);
                 }
 
                 // Step 4: Setup media session
-                log('Step 4: Setting up AirPod controls...');
-                updateStatus('Enabling AirPod controls...', false);
+                log('Setting up AirPod controls...');
                 setupMediaSession();
-                log('✓ AirPod controls enabled');
 
-                updateStatus('Active - Lock your phone and click your AirPod!', true);
-                button.textContent = 'Active - AirPod Control Enabled';
-
-                log('✓ All systems ready! Lock your iPhone and click your AirPod.');
+                updateStatus('Ready - lock phone and click AirPod', true);
+                log('Ready');
 
             } catch (error) {
-                log(`✗ Initialization error: ${error.message}`);
-                button.disabled = false;
-                button.textContent = 'Retry Enable AirPod Control';
+                log(`Init error: ${error.message}`);
                 updateStatus(`Error: ${error.message}`, false);
             }
-        });
+        }
 
-        // Log initial load
-        log('Page loaded. Click "Enable AirPod Control" to begin.');
+        // Start on load
+        init();
     </script>
 </body>
 </html>
